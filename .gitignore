@@ -1,0 +1,14 @@
+data/raw/*
+!data/raw/.gitkeep
+data/processed/*.csv
+!data/processed/exclusions.csv
+__pycache__/
+*.pyc
+venv/
+.env
+node_modules/
+database/dump.sql
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
