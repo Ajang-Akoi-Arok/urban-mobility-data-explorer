@@ -9,7 +9,7 @@ ranking library (`heapq`, `sorted`, `sort_values`, `Counter`, etc.).
 ## Why This Matters
 
 The dashboard's "Top 10 Pickup Zones" chart must rank zones by trip count.
-The naïve approach — sort all zones then slice — is O(N log N). When K is
+The naïve approach - sort all zones then slice - is O(N log N). When K is
 small relative to N (e.g. top-10 from 265 zones), a min-heap of size K
 achieves O(N log K), which is both faster and demonstrates genuine
 algorithmic understanding.
@@ -46,7 +46,7 @@ function top_k(data, k):
 
 ## Heap Primitives (manually implemented)
 
-### sift_up  — after insertion
+### sift_up  - after insertion
 ```
 function sift_up(heap, idx):
     while idx > 0:
@@ -58,7 +58,7 @@ function sift_up(heap, idx):
             break
 ```
 
-### sift_down  — after root removal
+### sift_down  - after root removal
 ```
 function sift_down(heap, idx, size):
     loop:
@@ -88,8 +88,8 @@ The heap is ~2.4× fewer comparisons — and the gap widens as N grows.
 
 ## Where It Is Used
 
-- `backend/algorithms/top_k.py` — Python implementation
-- `backend/api/routes/stats.py` → `/api/stats/top-zones` endpoint calls `top_k()`
-- `frontend/assets/js/sort.js` — insertion sort (O(n²), O(1) space) for
+- `backend/algorithms/top_k.py` -> Python implementation
+- `backend/api/routes/stats.py` -> `/api/stats/top-zones` endpoint calls `top_k()`
+- `frontend/assets/js/sort.js` -> insertion sort (O(n²), O(1) space) for
   client-side table sorting, chosen because n ≤ 1000 rows and in-place
   sorting avoids allocating a second array.
