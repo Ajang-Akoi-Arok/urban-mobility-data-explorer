@@ -1,119 +1,69 @@
-from pathlib import Path
 import pandas as pd
+import numpy as np
+import sys
+import os
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
+from backend.config import RAW_PARQUET, ZONE_LOOKUP, EXCLUSIONS_LOG
 
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
-
-RAW_DATA_PATH = (PROJECT_ROOT / "data" / "raw" /
-                 "yellow_tripdata_2024-01.parquet")
-
-PROCESSED_DIR = PROJECT_ROOT / "data" / "processed"
-CLEANED_DATA_PATH = PROCESSED_DIR / "cleaned_trips.parquet"
-CLEANING_LOG_PATH = PROCESSED_DIR / "cleaning_log.csv"
+def load_raw():
+    trips = pd.read_parquet(RAW_PARQUET)
+    zones = pd.read_csv(ZONE_LOOKUP)
+    return trips, zones
 
 
-def load_data():
-    """Load the raw taxi trip dataset"""
-    if not RAW_DATA_PATH.exists():
-        raise FileNotFoundError(f"Dataset not found: {RAW_DATA_PATH}")
+def clean(trips: pd.DataFrame, zones: pd.DataFrame):
+    exclusions = []
+    original_len = len(trips)
 
-    df = pd.read_parquet(RAW_DATA_PATH)
-    print(f"loaded {len(df):,} taxi trips.")
-    return df
+    # duplicates
+    dup_mask = trips.duplicated()
+    exclusions.append(trips[dup_mask].assign(reason="duplicate"))
+    trips = trips[~dup_mask].copy()
 
-
-def validate_data(df):
-    """Validate the required columns in the dataset"""
-    required_columns = [
-        "tpep_pickup_datetime",
-        "tpep_dropoff_datetime",
-        "passenger_count",
-        "trip_distance",
-        "PULocationID",
-        "DOLocationID",
-        "fare_amount",
-        "total_amount",
+    # missing required fields
+    required = [
+        "tpep_pickup_datetime", "tpep_dropoff_datetime",
+        "trip_distance", "fare_amount", "total_amount",
+        "PULocationID", "DOLocationID", "passenger_count",
     ]
+    null_mask = trips[required].isnull().any(axis=1)
+    exclusions.append(trips[null_mask].assign(reason="missing_required_field"))
+    trips = trips[~null_mask].copy()
 
-    missing_columns = [
-        column for column in required_columns
-        if column not in df.columns
-    ]
+    # temporal sanity
+    trips["tpep_pickup_datetime"]  = pd.to_datetime(trips["tpep_pickup_datetime"])
+    trips["tpep_dropoff_datetime"] = pd.to_datetime(trips["tpep_dropoff_datetime"])
+    bad_time = trips["tpep_dropoff_datetime"] <= trips["tpep_pickup_datetime"]
+    exclusions.append(trips[bad_time].assign(reason="dropoff_before_or_equal_pickup"))
+    trips = trips[~bad_time].copy()
 
-    if missing_columns:
-        raise ValueError(f"Missing required columns: {missing_columns}")
-    print("Required columns validated successfully.")
-    return df
+    # physical outliers
+    bad_dist = (trips["trip_distance"] <= 0) | (trips["trip_distance"] > 200)
+    exclusions.append(trips[bad_dist].assign(reason="distance_outlier"))
+    trips = trips[~bad_dist].copy()
 
+    bad_fare = (trips["fare_amount"] <= 0) | (trips["fare_amount"] > 500)
+    exclusions.append(trips[bad_fare].assign(reason="fare_outlier"))
+    trips = trips[~bad_fare].copy()
 
-def clean_data(df):
-    df = df.copy()
-    df["source_row"] = df.index
+    bad_pass = (trips["passenger_count"] <= 0) | (trips["passenger_count"] > 6)
+    exclusions.append(trips[bad_pass].assign(reason="passenger_count_outlier"))
+    trips = trips[~bad_pass].copy()
 
-    PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
-
-    df["duration_minutes"] = (
-        df["tpep_dropoff_datetime"] - df["tpep_pickup_datetime"]
-    ).dt.total_seconds() / 60
-
-# To identify trips with invalid timestamps and durations
-    invalid_duration = (
-        (df["duration_minutes"] <= 0) |
-        # Trips longer than 24 hours
-        (df["tpep_dropoff_datetime"] < df["tpep_pickup_datetime"])
+    # invalid location IDs
+    valid_ids = set(zones["LocationID"].tolist())
+    bad_loc = ~(
+        trips["PULocationID"].isin(valid_ids) & trips["DOLocationID"].isin(valid_ids)
     )
-# identify suspicious trips
-    suspicious_trips = (
-        (df["trip_distance"] <= 0) |
-        (df["fare_amount"] < 0) |
-        (df["duration_minutes"] > 1440)
-    )
-    print(f"Invalid trips: {invalid_duration.sum():,}")
-    print(f"Suspicious trips: {suspicious_trips.sum():,}")
+    exclusions.append(trips[bad_loc].assign(reason="invalid_location_id"))
+    trips = trips[~bad_loc].copy()
 
-    # Record issues before removing invalid trips
-    log_parts = []
+    # write exclusion log
+    os.makedirs(os.path.dirname(EXCLUSIONS_LOG), exist_ok=True)
+    if exclusions:
+        pd.concat(exclusions, ignore_index=True).to_csv(EXCLUSIONS_LOG, index=False)
 
-    rules = {
-        "invalid_duration": invalid_duration,
-         "Non-positive trip distance": df["trip_distance"] <= 0,
-        "Negative fare amount": df["fare_amount"] < 0,
-        "Duration exceeds 24 hours": df["duration_minutes"] > 1440,
-    }
-
-    for reason, mask in rules.items():
-        issue_log = df.loc[mask, ["source_row"]].copy()
-        issue_log["reasons"] = reason
-        issue_log["action"] = "flagged"
-
-        if reason == "invalid_duration":
-            issue_log["action"] = "excluded"
-        log_parts.append(issue_log)
-
-    if log_parts:
-        cleaning_log = pd.concat(log_parts, ignore_index=True)
-    else:
-        cleaning_log = pd.DataFrame(columns=["source_row", "reasons", "action"])
-
-    cleaning_log.to_csv(CLEANING_LOG_PATH, index=False)
-    print(f"Cleaning log saved to: {CLEANING_LOG_PATH}")
-
-    
-    df = df.loc[~invalid_duration].copy()
-    print(f"Trips remaining after cleaning: {len(df):,}")
-
-    return df
-
-
-if __name__ == "__main__":
-    df = load_data()
-    df = validate_data(df)
-    df = clean_data(df)
-
-    print(df[["duration_minutes"]].head())
-
-    PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
-    df.to_parquet(CLEANED_DATA_PATH, index=False)
-
-    print(f"Cleaned data saved to: {CLEANED_DATA_PATH}")
-    print(f"Final number of trips: {len(df):,}")
+    print(f"[clean] kept {len(trips):,} / {original_len:,} rows")
+    return trips.reset_index(drop=True)
