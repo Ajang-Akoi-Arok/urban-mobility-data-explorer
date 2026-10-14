@@ -1,33 +1,24 @@
-from pathlib import Path
-import pandas as pd
+"""
+Entry point: python -m backend.etl.run_pipeline
+"""
+import sys, os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
-from backend.etl.clean import load_data, validate_data, clean_data
-from backend.etl.features import create_features
+from backend.etl.clean import load_raw, clean
+from backend.etl.features import engineer
+from backend.etl.load import get_engine, load_zones, load_trips
 
 
-def run_pipeline():
-    """Run the taxi data cleaning and feature engineering pipeline."""
-    print("Starting taxi data pipeline...")
-
-    df = load_data()
-    df = validate_data(df)
-    df = clean_data(df)
-    df = create_features(df)
-
-    project_root = Path(__file__).resolve().parents[2]
-    output_path = (project_root / "data" / "processed" / "featured_trips.parquet"
-                   )
-
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    df.to_parquet(output_path, index=False)
-
-    if output_path.exists():
-        print(f"Pipeline completed successfully. Trips processed: {len(df):,}")
-        print(f"Featured dataset saved to: {output_path}")
-        print(f"file size: {output_path.stat().st_size:,} bytes")
-    else:
-        print("Error: Featured dataset was not created.")
+def run():
+    print("=== ETL Pipeline Start ===")
+    trips_raw, zones = load_raw()
+    trips_clean = clean(trips_raw, zones)
+    trips_final = engineer(trips_clean)
+    engine = get_engine()
+    load_zones(engine)
+    load_trips(trips_final, engine)
+    print("=== ETL Pipeline Complete ===")
 
 
 if __name__ == "__main__":
-    run_pipeline()
+    run()
