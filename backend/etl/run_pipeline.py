@@ -18,8 +18,15 @@ def run_pipeline():
     output_path = (project_root / "data" / "processed" / "featured_trips.parquet"
                    )
 
-    print(f"Pipeline completed successfully. Trips processed: {len(df):,}")
-    print(f"Featured dataset saved to: {output_path}")
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    df.to_parquet(output_path, index=False)
+
+    if output_path.exists():
+        print(f"Pipeline completed successfully. Trips processed: {len(df):,}")
+        print(f"Featured dataset saved to: {output_path}")
+        print(f"file size: {output_path.stat().st_size:,} bytes")
+    else:
+        print("Error: Featured dataset was not created.")
 
 
 if __name__ == "__main__":
