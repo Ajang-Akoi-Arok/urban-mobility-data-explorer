@@ -2,8 +2,8 @@
 
 ## Team
 - Ajang — Frontend & Visualization
-- Chwuku — Data & Database
-- Chidi — Backend & Algorithm
+- Chidi — Data & Database
+- Chukwu — Backend & Algorithm
 
 ## Setup
 
