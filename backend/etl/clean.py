@@ -71,27 +71,34 @@ def clean_data(df):
     print(f"Invalid trips: {invalid_duration.sum():,}")
     print(f"Suspicious trips: {suspicious_trips.sum():,}")
 
-    #Record issues before removing invalid trips
-    log_entries = []
-    for index in df.index:
-        reasons = []
-        if invalid_duration.loc[index]:
-            reasons.append("Invalid duration")
-        if df.loc[index, "trip_distance"] <= 0:
-            reasons.append("Non-positive trip distance")
-        if df.loc[index, "fare_amount"] < 0:
-            reasons.append("Negative fare amount")
-        if df.loc[index, "duration_minutes"] > 1440:
-            reasons.append("Duration exceeds 24 hours")
-        if reasons:
-            log_entries.append({
-                "source_row": df.loc[index, "source_row"],
-                "reasons": "; ".join(reasons),
-                "action": ("excluded" if invalid_duration.loc[index] else "flagged"),
-            })
-        cleaning_log = pd.DataFrame(log_entries)
-        cleaning_log.to_csv(CLEANING_LOG_PATH, index=False)
+    # Record issues before removing invalid trips
+    log_parts = []
 
+    rules = {
+        "invalid_duration": invalid_duration,
+         "Non-positive trip distance": df["trip_distance"] <= 0,
+        "Negative fare amount": df["fare_amount"] < 0,
+        "Duration exceeds 24 hours": df["duration_minutes"] > 1440,
+    }
+
+    for reason, mask in rules.items():
+        issue_log = df.loc[mask, ["source_row"]].copy()
+        issue_log["reasons"] = reason
+        issue_log["action"] = "flagged"
+
+        if reason == "invalid_duration":
+            issue_log["action"] = "excluded"
+        log_parts.append(issue_log)
+
+    if log_parts:
+        cleaning_log = pd.concat(log_parts, ignore_index=True)
+    else:
+        cleaning_log = pd.DataFrame(columns=["source_row", "reasons", "action"])
+
+    cleaning_log.to_csv(CLEANING_LOG_PATH, index=False)
+    print(f"Cleaning log saved to: {CLEANING_LOG_PATH}")
+
+    
     df = df.loc[~invalid_duration].copy()
     print(f"Trips remaining after cleaning: {len(df):,}")
 
