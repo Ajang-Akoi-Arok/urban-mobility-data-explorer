@@ -2,316 +2,333 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>NYC Urban Mobility Explorerb</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NYC Urban Mobility Data Explorer | Enterprise Dashboard</title>
 
-    <!-- google Fonts: outfit and inter-->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap"
-        rel="stylesheet" />
+  <!-- Google Fonts: Montserrat -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet" />
 
-    <!--CSS Stylesheep-->
-    <link rel="stylesheet" href="assets/css/style.css" />
+  <!-- CSS Stylesheet -->
+  <link rel="stylesheet" href="assets/css/style.css" />
 
-    <!--Chart.js 4.4 library-->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <!-- Chart.js 4.4 Library -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 
-    <!--Leaflet Css & Js For Geopartial Map-->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- Leaflet CSS & JS for Geospatial Maps -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 
 <body>
 
-    <!--Sidebar-->
-    <aside class="sidebar">
-        <div class="sidebar-brand">
-            <div class="brand-badge">NYC</div>
-            <div class="brand-text">
-                <span class="brand-title">Urban Mobility</span>
-                <span class="brand-sub">TLC Analytics Explorer</span>
-            </div>
+  <!-- ── Sidebar ─────────────────────────────────────────────────────────── -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-badge">NYC</div>
+      <div class="brand-text">
+        <span class="brand-title">Urban Mobility</span>
+        <span class="brand-sub">TLC Analytics Explorer</span>
+      </div>
+    </div>
+
+    <!-- Navigation Links -->
+    <ul class="nav-links">
+      <li>
+        <a href="#" class="nav-link active" data-view="analytics" id="nav-analytics">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="7" height="9" rx="1" />
+            <rect x="14" y="3" width="7" height="5" rx="1" />
+            <rect x="14" y="12" width="7" height="9" rx="1" />
+            <rect x="3" y="16" width="7" height="5" rx="1" />
+          </svg>
+          Analytics Dashboard
+        </a>
+      </li>
+      <li>
+        <a href="#" class="nav-link" data-view="explorer" id="nav-explorer">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="8" y1="6" x2="21" y2="6" />
+            <line x1="8" y1="12" x2="21" y2="12" />
+            <line x1="8" y1="18" x2="21" y2="18" />
+            <line x1="3" y1="6" x2="3.01" y2="6" />
+            <line x1="3" y1="12" x2="3.01" y2="12" />
+            <line x1="3" y1="18" x2="3.01" y2="18" />
+          </svg>
+          Trip Explorer
+        </a>
+      </li>
+      <li>
+        <a href="#" class="nav-link" data-view="map" id="nav-map">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" />
+            <line x1="8" y1="2" x2="8" y2="18" />
+            <line x1="16" y1="6" x2="16" y2="22" />
+          </svg>
+          Zone Spatial Map
+        </a>
+      </li>
+    </ul>
+
+    <!-- Global Filter Control Panel -->
+    <div class="filter-panel">
+      <div class="filter-header">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+          <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+        </svg>
+        <span>Global Filters</span>
+      </div>
+
+      <div class="filter-group">
+        <label for="filter-hour" class="filter-label">Hour of Day</label>
+        <select id="filter-hour" class="filter-select">
+          <option value="">All Hours (24h)</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label for="filter-dow" class="filter-label">Day of Week</label>
+        <select id="filter-dow" class="filter-select">
+          <option value="">All Days</option>
+          <option value="0">Monday</option>
+          <option value="1">Tuesday</option>
+          <option value="2">Wednesday</option>
+          <option value="3">Thursday</option>
+          <option value="4">Friday</option>
+          <option value="5">Saturday</option>
+          <option value="6">Sunday</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label for="filter-pu-borough" class="filter-label">Pickup Borough</label>
+        <select id="filter-pu-borough" class="filter-select">
+          <option value="">All Boroughs</option>
+          <option value="Manhattan">Manhattan</option>
+          <option value="Brooklyn">Brooklyn</option>
+          <option value="Queens">Queens</option>
+          <option value="Bronx">Bronx</option>
+          <option value="Staten Island">Staten Island</option>
+        </select>
+      </div>
+
+      <div class="filter-actions">
+        <button id="btn-apply" class="btn btn-primary">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5">
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+          Apply Filters
+        </button>
+        <button id="btn-reset" class="btn btn-secondary">Reset</button>
+      </div>
+
+      <div id="filter-status" class="filter-status hidden">
+        <span class="status-dot"></span>
+        <span id="filter-status-text">Active Filters</span>
+      </div>
+    </div>
+
+    <!-- Sidebar Footer -->
+    <div class="sidebar-footer">
+      <button class="theme-toggle" id="btn-theme">
+        <svg id="theme-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="5"/>
+          <line x1="12" y1="1" x2="12" y2="3"/>
+          <line x1="12" y1="21" x2="12" y2="23"/>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+          <line x1="1" y1="12" x2="3" y2="12"/>
+          <line x1="21" y1="12" x2="23" y2="12"/>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+        </svg>
+        <span id="theme-label">Light Mode</span>
+      </button>
+      <div class="server-status ok" id="server-status">
+        <span class="pulse-dot"></span> API Engine Connected
+      </div>
+      <div class="meta-tag">NYC TLC • Jan 2019</div>
+    </div>
+  </aside>
+
+  <!-- ── Main Workspace ────────────────────────────────────────────────── -->
+  <main class="main-wrap">
+
+    <!-- KPI Header Strip -->
+    <section class="kpi-strip">
+      <div class="kpi-card" id="kpi-total">
+        <span class="kpi-label">Total Trips</span>
+        <div class="kpi-value" id="val-total">—</div>
+      </div>
+
+      <div class="kpi-card" id="kpi-fare">
+        <span class="kpi-label">Avg Fare</span>
+        <div class="kpi-value" id="val-fare">—</div>
+      </div>
+
+      <div class="kpi-card" id="kpi-dist">
+        <span class="kpi-label">Avg Distance</span>
+        <div class="kpi-value" id="val-dist">—</div>
+      </div>
+
+      <div class="kpi-card" id="kpi-speed">
+        <span class="kpi-label">Avg Speed</span>
+        <div class="kpi-value" id="val-speed">—</div>
+      </div>
+
+      <div class="kpi-card" id="kpi-dur">
+        <span class="kpi-label">Avg Duration</span>
+        <div class="kpi-value" id="val-dur">—</div>
+      </div>
+
+      <div class="kpi-card" id="kpi-fpm">
+        <span class="kpi-label">Fare Rate</span>
+        <div class="kpi-value" id="val-fpm">—</div>
+      </div>
+    </section>
+
+    <!-- ── View 1: Analytics Dashboard ─────────────────────────────────── -->
+    <section id="view-analytics" class="view active">
+      <div class="charts-grid">
+        <div class="chart-card span-2">
+          <div class="chart-header">
+            <h3>Trips & Average Fare by Hour</h3>
+          </div>
+          <div class="canvas-wrap">
+            <canvas id="chart-hourly"></canvas>
+          </div>
         </div>
 
-        <!--Nav links-->
-        <ul class="nav-links">
-            <li>
-                <a href="#" class="nav-link active" data-view="analytics" id="nav-analytics">
-                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="3" y="3" width="7" height="9" rx="1" />
-                        <rect x="14" y="3" width="7" height="5" rx="1" />
-                        <rect x="14" y="12" width="7" height="9" rx="1" />
-                        <rect x="3" y="16" width="7" height="5" rx="1" />
-                    </svg>
-                    Analytics Dashboard
-                </a>
-            </li>
-            <li>
-                <a href="#" class="nav-link" data-view="explorer" id="nav-explorer">
-                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <line x1="8" y1="6" x2="21" y2="6" />
-                        <line x1="8" y1="12" x2="21" y2="12" />
-                        <line x1="8" y1="18" x2="21" y2="18" />
-                        <line x1="3" y1="6" x2="3.01" y2="6" />
-                        <line x1="3" y1="12" x2="3.01" y2="12" />
-                        <line x1="3" y1="18" x2="3.01" y2="18" />
-                    </svg>
-                    Trip Explorer
-                </a>
-            </li>
-            <li>
-                <a href="#" class="nav-link" data-view="map" id="nav-map">
-                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" />
-                        <line x1="8" y1="2" x2="8" y2="18" />
-                        <line x1="16" y1="6" x2="16" y2="22" />
-                    </svg>
-                    Zone Spatial Map
-                </a>
-            </li>
-        </ul>
-
-        <!--Global filter Control panel-->
-        <div class="filter-panel">
-            <div class="filter-header">
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-                    <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
-                </svg>
-                <span> Global Filters</span>
-            </div>
-
-            <div class="filter-group">
-                <label for="filter-hour" class="filter-label">Hour of Day</label>
-                <select id="filter-hour" class="filter-select">
-                    <option value="">All Hours (24h)</option>
-                </select>
-            </div>
-
-            <div class="filter-group">
-                <label for="filter-dow" class="filter-label">Day of Week</label>
-                <select id="filter-dow" class="filter-select">
-                    <option value="">All Days</option>
-                    <option value="0">Monday</option>
-                    <option value="1">Tuesday</option>
-                    <option value="2">Wednesday</option>
-                    <option value="3">Thursday</option>
-                    <option value="4">Friday</option>
-                    <option value="5">Saturday</option>
-                    <option value="6">Sunday</option>
-                </select>
-            </div>
-
-            <div class="filter-group">
-                <label for="filter-pu-borough" class="filter-label">Pickup Borough</label>
-                <select id="filter-pu-borough" class="filter-select">
-                    <option value="">All Boroughs</option>
-                    <option value="Manhattan">Manhattan</option>
-                    <option value="Brooklyn">Brooklyn</option>
-                    <option value="Queens">Queens</option>
-                    <option value="Bronx">Bronx</option>
-                    <option value="Staten Island">Staten Island</option>
-                </select>
-            </div>
-
-            <div class="filter-actions">
-                <button id="btn-apply" class="btn btn-primary">
-                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor"
-                        stroke-width="2.5">
-                        <polyline points="20 6 9 17 4 12" />
-                    </svg>
-                    Apply Filters
-                </button>
-                <button id="btn-reset" class="btn btn-secondary">Reset</button>
-            </div>
-
-            <div id="filter-status" class="filter-status hidden">
-                <span class="status-dot"></span>
-                <span id="filter-status-text">Active Filters</span>
-            </div>
+        <div class="chart-card">
+          <div class="chart-header">
+            <h3>Day of Week Distribution</h3>
+          </div>
+          <div class="canvas-wrap">
+            <canvas id="chart-dow"></canvas>
+          </div>
         </div>
 
-        <!--sidebar Footer-->
-        <div class="sidebar-footer">
-            <div class="server-status ok" id="server-status">
-                <span class="pulse-dot"></span> API Engine Connected
-            </div>
-            <div class="meta-tag">NYC TLC • Jan 2019</div>
+        <div class="chart-card">
+          <div class="chart-header">
+            <h3>Fare Distribution</h3>
+          </div>
+          <div class="canvas-wrap">
+            <canvas id="chart-fare-dist"></canvas>
+          </div>
         </div>
-    </aside>
 
-    <!--Main Workspace-->
-    <main class="main-wrap">
+        <div class="chart-card span-2">
+          <div class="chart-header">
+            <h3>Avg Speed Heatmap — Hour × Day</h3>
+            <span class="badge blue">24 × 7 Grid</span>
+          </div>
+          <div class="canvas-wrap heatmap-wrap">
+            <canvas id="chart-speed-heatmap"></canvas>
+          </div>
+        </div>
 
-        <!--KPI Header Strip-->
-        <section class="kpi-strip">
-            <div class="kpi-card" id="kpi-total">
-                <span class="kpi-label">Total Trips</span>
-                <div class="kpi-value" id="val-total">—</div>
-            </div>
+        <div class="chart-card">
+          <div class="chart-header">
+            <h3>Top 10 Pickup Zones</h3>
+          </div>
+          <div class="canvas-wrap">
+            <canvas id="chart-top-zones"></canvas>
+          </div>
+        </div>
 
-            <div class="kpi-card" id="kpi-fare">
-                <span class="kpi-label">Avg Fare</span>
-                <div class="kpi-value" id="val-fare">—</div>
-            </div>
+        <div class="chart-card">
+          <div class="chart-header">
+            <h3>Borough Flow</h3>
+          </div>
+          <div class="canvas-wrap">
+            <canvas id="chart-borough-flow"></canvas>
+          </div>
+        </div>
+      </div>
+    </section>
 
-            <div class="kpi-card" id="kpi-dist">
-                <span class="kpi-label">Avg Distance</span>
-                <div class="kpi-value" id="val-dist">—</div>
-            </div>
+    <!-- ── View 2: Trip Explorer Table ─────────────────────────────────── -->
+    <section id="view-explorer" class="view">
+      <div class="explorer-toolbar">
+        <div class="toolbar-left">
+          <span class="result-count" id="result-count">0 trips displayed</span>
+        </div>
 
-            <div class="kpi-card" id="kpi-speed">
-                <span class="kpi-label">Avg Speed</span>
-                <div class="kpi-value" id="val-speed">—</div>
-            </div>
+        <div class="sort-controls">
+          <select id="sort-col" class="filter-select inline">
+            <option value="fare_amount">Fare</option>
+            <option value="trip_distance">Distance</option>
+            <option value="trip_duration_min">Duration</option>
+            <option value="speed_mph">Speed</option>
+            <option value="tip_amount">Tip</option>
+            <option value="fare_per_mile">Rate / Mi</option>
+          </select>
 
-            <div class="kpi-card" id="kpi-dur">
-                <span class="kpi-label">Avg Duration</span>
-                <div class="kpi-value" id="val-dur">—</div>
-            </div>
+          <select id="sort-dir" class="filter-select inline">
+            <option value="desc">Descending</option>
+            <option value="asc">Ascending</option>
+          </select>
 
-            <div class="kpi-card" id="kpi-fpm">
-                <span class="kpi-label">Fare Rate</span>
-                <div class="kpi-value" id="val-fpm">—</div>
-            </div>
-        </section>
+          <button id="btn-sort" class="btn btn-outline">Sort</button>
+        </div>
+      </div>
 
-        <!--view 1: Analytics Dashboard-->
-        <section id="view-analytics" class="view active">
-            <div class="charts-grid">
-                <div class="chart-card span-2">
-                    <div class="chart-header">
-                        <h3>Trips & Average Fare by Hour</h3>
-                    </div>
-                    <div class="canvas-wrap">
-                        <canvas id="chart-hourly"></canvas>
-                    </div>
-                </div>
+      <div class="table-container">
+        <table id="trips-table">
+          <thead>
+            <tr>
+              <th>Pickup Time</th>
+              <th>Dropoff Time</th>
+              <th>Origin Zone (Borough)</th>
+              <th>Destination Zone (Borough)</th>
+              <th class="num">Distance</th>
+              <th class="num">Duration</th>
+              <th class="num">Avg Speed</th>
+              <th class="num">Fare</th>
+              <th class="num">Tip</th>
+              <th class="num">Rate / Mi</th>
+            </tr>
+          </thead>
+          <tbody id="trips-tbody">
+            <!-- Rendered by sort.js -->
+          </tbody>
+        </table>
+      </div>
+    </section>
 
-                <div class="chart-card">
-                    <div class="chart-header">
-                        <h3> Day of Week Distribution</h3>
-                    </div>
-                    <div class="canvas-wrap">
-                        <canvas id="chart-dow"></canvas>
-                    </div>
-                </div>
+    <!-- ── View 3: Zone Map ─────────────────────────────────────────────── -->
+    <section id="view-map" class="view">
+      <div class="map-container">
+        <div id="map"></div>
+        <div class="map-overlay-legend">
+          <div class="legend-title">NYC Taxi Pickup Density</div>
+          <div class="legend-scale">
+            <span class="scale-box low"></span> Low
+          </div>
+          <div class="legend-scale">
+            <span class="scale-box med"></span> Medium
+          </div>
+          <div class="legend-scale">
+            <span class="scale-box high"></span> High
+          </div>
+          <div class="legend-sub">265 GeoJSON Zones</div>
+        </div>
+      </div>
+    </section>
 
-                <div class="chart-card">
-                    <div class="chart-header">
-                        <h3>Fare Distribution</h3>
-                    </div>
-                    <div class="canvas-wrap">
-                        <canvas id="chart-fare-dist"></canvas>
-                    </div>
-                </div>
+  </main>
 
-                <div class="chart-card span-2">
-                    <div class="chart-header">
-                        <h3>Speed Heatmap</h3>
-                    </div>
-                    <div class="canvas-wrap">
-                        <canvas id="chart-speed-heatmap"></canvas>
-                    </div>
-                </div>
-
-                <div class="chart-card">
-                    <div class="chart-header">
-                        <h3>Top 10 Pickup Zones</h3>
-                    </div>
-                    <div class="canvas-wrap">
-                        <canvas id="chart-top-zones"></canvas>
-                    </div>
-                </div>
-
-                <div class="chart-card">
-                    <div class="chart-header">
-                        <h3>Borough Flow</h3>
-                    </div>
-                    <div class="canvas-wrap">
-                        <canvas id="chart-borough-flow"></canvas>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!------view2, Trip Explorer table-->
-        <section id="view-explorer" class="view">
-            <div class="explorer-toolbar">
-                <div class="toolbar-left">
-                    <span class="result-count" id="result-count">0 trips displayed</span>
-                </div>
-
-                <div class="sort-controls">
-                    <select id="sort-col" class="filter-select inline">
-                        <option value="fare_amount">Fare</option>
-                        <option value="trip_distance">Distance</option>
-                        <option value="trip_duration_min">Duration</option>
-                        <option value="speed_mph">Speed</option>
-                        <option value="tip_amount">Tip</option>
-                        <option value="fare_per_mile">Rate / Mi</option>
-                    </select>
-
-                    <select id="sort-dir" class="filter-select inline">
-                        <option value="desc">Descending</option>
-                        <option value="asc">Ascending</option>
-                    </select>
-
-                    <button id="btn-sort" class="btn btn-outline">Sort</button>
-                </div>
-            </div>
-
-            <div class="table-container">
-                <table id="trips-table">
-                    <thead>
-                        <tr>
-                            <th>Pickup Time</th>
-                            <th>Dropoff Time</th>
-                            <th>Origin Zone (Borough)</th>
-                            <th>Destination Zone (Borough)</th>
-                            <th class="num">Distance</th>
-                            <th class="num">Duration</th>
-                            <th class="num">Avg Speed</th>
-                            <th class="num">Fare</th>
-                            <th class="num">Tip</th>
-                            <th class="num">Rate / Mi</th>
-                        </tr>
-                    </thead>
-                    <tbody id="trips-tbody">
-                        <!--Rendered by sort.js-->
-                    </tbody>
-                </table>
-            </div>
-        </section>
-
-        <!--view 3: Zone map-->
-        <section id="view-map" class="view">
-            <div class="map-container">
-                <div id="map"></div>
-                <div class="map-overlay-legend">
-                    <div class="legend-title">NYC Taxi Pickup Density</div>
-                    <div class="legend-scale">
-                        <span class="scale-box low"></span> Low
-                        <span class="scale-box med"></span> Medium
-                        <span class="scale-box high"></span> High Volume
-                    </div>
-                    <div class="legend-sub">Interactive GeoJSON Polygons (265 Zones)</div>
-                </div>
-            </div>
-        </section>
-
-    </main>
-
-
-    <!--Frontend JavaScript Modules-->
-    <script src="assets/js/api.js"></script>
-    <script src="assets/js/filters.js"></script>
-    <script src="assets/js/charts.js"></script>
-    <script src="assets/js/map.js"></script>
-    <script src="assets/js/sort.js"></script>
-    <script src="assets/js/main.js"></script>
+  <!-- Frontend JavaScript Modules -->
+  <script src="assets/js/api.js"></script>
+  <script src="assets/js/filters.js"></script>
+  <script src="assets/js/charts.js"></script>
+  <script src="assets/js/map.js"></script>
+  <script src="assets/js/sort.js"></script>
+  <script src="assets/js/main.js"></script>
 </body>
 
 </html>
