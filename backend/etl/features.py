@@ -1,37 +1,29 @@
-from pathlib import Path
 import pandas as pd
 
 
-def create_features(df):
-    """Create additional features for taxi trip analysis"""
-    df = df.copy()
+def engineer(trips: pd.DataFrame) -> pd.DataFrame:
+    # derives: trip_duration_min, speed_mph, fare_per_mile, pickup_hour, pickup_dow
+    df = trips.copy()
+
+    df["trip_duration_min"] = (
+        (df["tpep_dropoff_datetime"] - df["tpep_pickup_datetime"])
+        .dt.total_seconds()
+        / 60
+    ).round(2)
+
+    df = df[df["trip_duration_min"] > 0].copy()
+
+    df["speed_mph"] = (
+        df["trip_distance"] / (df["trip_duration_min"] / 60)
+    ).round(2)
+
+    df["fare_per_mile"] = (df["fare_amount"] / df["trip_distance"]).round(2)
 
     df["pickup_hour"] = df["tpep_pickup_datetime"].dt.hour
-    df["pickup_day"] = df["tpep_pickup_datetime"].dt.dayofweek
-    df["is_weekend"] = df["pickup_day"] >= 5
-    duration_hours = df["duration_minutes"] / 60
+    df["pickup_dow"]  = df["tpep_pickup_datetime"].dt.dayofweek
 
-    df["average_speed_mph"] = (
-        df["trip_distance"] / duration_hours).where(duration_hours > 0)
+    # drop sensor errors — >120 mph is not possible in NYC
+    df = df[df["speed_mph"] <= 120].copy()
 
-    return df
-
-
-if __name__ == "__main__":
-    project_root = Path(__file__).resolve().parents[2]
-    data_path = project_root / "data" / "processed" / "cleaned_trips.parquet"
-
-    df = pd.read_parquet(data_path)
-    print(f"Loaded {len(df):,} cleaned trips.")
-
-    df = create_features(df)
-
-    columns_to_check = [
-        "pickup_hour",
-        "pickup_day",
-        "is_weekend",
-        "average_speed_mph",
-    ]
-
-    print(df[columns_to_check].head())
-    print("Feature engineering completed successfully.")
+    print(f"[features] {len(df):,} rows after feature engineering")
+    return df.reset_index(drop=True)
