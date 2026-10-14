@@ -1,6 +1,7 @@
 # Urban Mobility Data Explorer
 
 ## Team
+
 - Ajang — Frontend & Visualization
 - Chidi — Data & Database
 - Chukwu — Backend & Algorithm
