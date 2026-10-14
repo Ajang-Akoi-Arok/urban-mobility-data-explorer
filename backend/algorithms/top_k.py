@@ -31,16 +31,16 @@ def _sift_down(heap, idx, size):
         idx = smallest
 
 
-def _heap_push(head, item):
+def _heap_push(heap, item):
     heap.append(item)
-    _sift_up(head, len(heap) -1)
+    _sift_up(heap, len(heap) -1)
 
 def _heap_pop(heap):
     # remove and return the minimum (root)
     if len(heap) == 1:
         return heap.pop()
     root = heap[0]
-    heap[0] = head.pop()
+    heap[0] = heap.pop()
     _sift_down(heap, 0, len(heap))
     return root
 
