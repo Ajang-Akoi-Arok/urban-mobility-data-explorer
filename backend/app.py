@@ -11,7 +11,7 @@ app = Flask(__name__)
 CORS(app)
 
 app.register_blueprint(trips_bp, url_prefix="/api")
-app.register_blueprintt(stats_bp, url_prefix="/api")
+app.register_blueprint(stats_bp, url_prefix="/api")
 
 @app.route("/api/health")
 def health():

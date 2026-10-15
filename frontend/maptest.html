@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Map Test</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    body { margin: 0; }
+    #map { width: 100vw; height: 100vh; }
+    #info { position:fixed; top:10px; left:10px; background:rgba(0,0,0,0.8); color:#fff; padding:10px; font-family:monospace; font-size:12px; z-index:9999; }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <div id="info">Loading...</div>
+  <script>
+    const map = L.map('map').setView([40.7128, -74.006], 11);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+    const info = document.getElementById('info');
+
+    Promise.all([
+      fetch('assets/data/taxi_zones.geojson').then(r => r.json()),
+      fetch('http://127.0.0.1:5000/api/stats/zone-counts').then(r => r.json())
+    ]).then(([geojson, counts]) => {
+      const lookup = {};
+      counts.forEach(z => lookup[z.zone_id] = z.trip_count);
+
+      const vals = Object.values(lookup).filter(v => v > 0).sort((a,b) => a-b);
+      const at = p => vals[Math.floor(p * (vals.length - 1))];
+      const [p50, p75, p90] = [at(0.5), at(0.75), at(0.9)];
+
+      info.textContent = `zones: ${geojson.features.length} | counts: ${counts.length} | p50:${p50} p75:${p75} p90:${p90}`;
+
+      L.geoJSON(geojson, {
+        style: f => {
+          const id = f.properties.LocationID;
+          const c = lookup[id] || 0;
+          const fill = c === 0 ? '#1e293b' : c >= p90 ? '#ef4444' : c >= p75 ? '#f97316' : c >= p50 ? '#facc15' : '#4ade80';
+          return { fillColor: fill, fillOpacity: 0.78, color: '#0f172a', weight: 1.5 };
+        },
+        onEachFeature: (f, layer) => {
+          const id = f.properties.LocationID;
+          const c = lookup[id] || 0;
+          layer.bindTooltip(
+            `<b style="color:#f5c518">${f.properties.zone}</b><br>${f.properties.borough}<br><b style="color:#38bdf8">${c.toLocaleString()} pickups</b>`,
+            { sticky: true }
+          );
+          layer.on('mouseover', function() { this.setStyle({ weight: 3, color: '#f5c518', fillOpacity: 0.95 }); });
+          layer.on('mouseout',  function() { this.setStyle({ weight: 1.5, color: '#0f172a', fillOpacity: 0.78 }); });
+        }
+      }).addTo(map);
+
+    }).catch(e => { info.textContent = 'ERROR: ' + e; info.style.color = 'red'; });
+  </script>
+</body>
+</html>

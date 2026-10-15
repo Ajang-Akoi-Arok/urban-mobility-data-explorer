@@ -1,6 +1,5 @@
 /**
  * NYC Urban Mobility Data Explorer — Leaflet Geospatial Map Engine
- * Sharp Cornered & Flat Solid Human Color Palette
  */
 
 let _leafletMapInstance = null;
@@ -26,7 +25,29 @@ function initializeMapContainer() {
     maxZoom: 19,
   }).addTo(_leafletMapInstance);
 
+  const legend = L.control({ position: "bottomright" });
+  legend.onAdd = function () {
+    const div = L.DomUtil.create("div", "leaflet-legend");
+    div.innerHTML = `
+      <div class="legend-title">NYC Taxi Pickup Density</div>
+      <div class="legend-row"><span class="legend-box" style="background:#ef4444"></span> Very High</div>
+      <div class="legend-row"><span class="legend-box" style="background:#f97316"></span> High</div>
+      <div class="legend-row"><span class="legend-box" style="background:#facc15"></span> Medium</div>
+      <div class="legend-row"><span class="legend-box" style="background:#4ade80"></span> Low</div>
+      <div class="legend-row"><span class="legend-box" style="background:#1e293b;border:1px solid #334155"></span> No Data</div>
+    `;
+    return div;
+  };
+  legend.addTo(_leafletMapInstance);
+
   window._leafletMapInstance = _leafletMapInstance;
+}
+
+function _getPercentileThresholds(countsMap) {
+  const vals = Object.values(countsMap).filter(v => v > 0).sort((a, b) => a - b);
+  if (!vals.length) return [0, 0, 0];
+  const at = pct => vals[Math.floor(pct * (vals.length - 1))];
+  return [at(0.5), at(0.75), at(0.9)];
 }
 
 function renderGeospatialMap(geoJsonData, topZonesData = []) {
@@ -37,27 +58,32 @@ function renderGeospatialMap(geoJsonData, topZonesData = []) {
     _pickupCountsByZoneId[zone.zone_id] = zone.trip_count;
   });
 
-  const maxTrips = Math.max(...Object.values(_pickupCountsByZoneId), 1);
+  const [p50, p75, p90] = _getPercentileThresholds(_pickupCountsByZoneId);
 
   if (_geoJsonLayerInstance) {
     _leafletMapInstance.removeLayer(_geoJsonLayerInstance);
   }
 
-  // force Leaflet to recalculate container size before drawing polygons
   _leafletMapInstance.invalidateSize();
 
   _geoJsonLayerInstance = L.geoJSON(geoJsonData, {
     style: feature => {
       const locationId = feature.properties.LocationID || feature.properties.location_id;
       const count      = _pickupCountsByZoneId[locationId] || 0;
-      const ratio      = count / maxTrips;
+
+      let fillColor;
+      if (count === 0)       fillColor = "#1e293b";
+      else if (count >= p90) fillColor = "#ef4444";
+      else if (count >= p75) fillColor = "#f97316";
+      else if (count >= p50) fillColor = "#facc15";
+      else                   fillColor = "#4ade80";
 
       return {
-        fillColor:   ratio > 0.5 ? "#f5c518" : ratio > 0.2 ? "#38bdf8" : "#34d399",
-        fillOpacity: 0.2 + (ratio * 0.7),
-        color:       "#272a34",
-        weight:      1,
-        opacity:     0.9,
+        fillColor,
+        fillOpacity: count === 0 ? 0.25 : 0.78,
+        color:       "#0f172a",
+        weight:      1.5,
+        opacity:     1,
       };
     },
     onEachFeature: (feature, layer) => {
@@ -68,23 +94,27 @@ function renderGeospatialMap(geoJsonData, topZonesData = []) {
 
       const popupHtml = `
         <div style="font-family:'Montserrat',sans-serif; padding:4px;">
-          <div style="font-family:'Montserrat',sans-serif; font-size:13px; font-weight:700; color:#f5c518; text-transform:uppercase;">${zoneName}</div>
+          <div style="font-size:13px; font-weight:700; color:#f5c518; text-transform:uppercase;">${zoneName}</div>
           <div style="font-size:11px; color:#94a3b8; margin-top:2px;">Borough: <strong style="color:#f8fafc;">${borough}</strong></div>
           <div style="font-size:11px; color:#94a3b8; margin-top:2px;">Location ID: <strong style="color:#f8fafc;">${locationId}</strong></div>
           <div style="font-size:12px; font-weight:700; color:#38bdf8; margin-top:6px;">${tripCount.toLocaleString()} Pickups</div>
         </div>
       `;
 
-      layer.bindPopup(popupHtml);
+      layer.bindTooltip(`
+        <div style="font-family:'Montserrat',sans-serif;">
+          <div style="font-size:12px;font-weight:700;color:#f5c518;text-transform:uppercase;">${zoneName}</div>
+          <div style="font-size:11px;color:#94a3b8;margin-top:2px;">${borough}</div>
+          <div style="font-size:12px;font-weight:700;color:#38bdf8;margin-top:4px;">${tripCount.toLocaleString()} Pickups</div>
+        </div>
+      `, { sticky: true, className: "zone-tooltip" });
 
       layer.on("mouseover", function () {
         this.setStyle({ weight: 2, color: "#f5c518", fillOpacity: 0.9 });
-        this.openPopup();
       });
 
       layer.on("mouseout", function () {
         _geoJsonLayerInstance.resetStyle(this);
-        this.closePopup();
       });
     },
   }).addTo(_leafletMapInstance);
@@ -92,8 +122,6 @@ function renderGeospatialMap(geoJsonData, topZonesData = []) {
 
 function invalidateMapSize() {
   if (_leafletMapInstance) {
-    setTimeout(() => {
-      _leafletMapInstance.invalidateSize();
-    }, 300);
+    setTimeout(() => _leafletMapInstance.invalidateSize(), 300);
   }
 }

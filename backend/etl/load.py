@@ -13,6 +13,10 @@ def load_zones(engine):
     zones = pd.read_csv(ZONE_LOOKUP)
     zones.columns = [c.lower() for c in zones.columns]
     zones.rename(columns={"locationid": "location_id"}, inplace=True)
+    with engine.connect() as conn:
+        conn.execute(text("DROP TABLE IF EXISTS trips CASCADE"))
+        conn.execute(text("DROP TABLE IF EXISTS taxi_zones CASCADE"))
+        conn.commit()
     zones.to_sql("taxi_zones", engine, if_exists="replace", index=False)
     print(f"[load] taxi_zones: {len(zones)} rows")
 
@@ -21,7 +25,7 @@ def load_trips(df: pd.DataFrame, engine, chunksize: int = 500):
     cols = [
         "tpep_pickup_datetime", "tpep_dropoff_datetime",
         "passenger_count", "trip_distance",
-        "PULocationID", "DOlocationID",
+        "PULocationID", "DOLocationID",
         "fare_amount", "tip_amount", "total_amount",
         "trip_duration_min", "speed_mph", "fare_per_mile",
         "pickup_hour", "pickup_dow",
@@ -42,11 +46,11 @@ def load_trips(df: pd.DataFrame, engine, chunksize: int = 500):
 
     # common query patterns indexes
     with engine.connect() as conn:
-        conn.execute(text("CREATE INDEX IF NOT EXISTS idx_pickup_hour ON trips(pick_hour)"))
+        conn.execute(text("CREATE INDEX IF NOT EXISTS idx_pickup_hour ON trips(pickup_hour)"))
         conn.execute(text("CREATE INDEX IF NOT EXISTS idx_pickup_dow ON trips(pickup_dow)"))
         conn.execute(text("CREATE INDEX IF NOT EXISTS idx_pulocation ON trips(pulocationid)"))
         conn.execute(text("CREATE INDEX IF NOT EXISTS idx_doloaction ON trips(dolocationid)"))
         conn.execute(text("CREATE INDEX IF NOT EXISTS idx_pickup_dt ON trips(tpep_pickup_datetime)"))
         conn.execute(text("CREATE INDEX IF NOT EXISTS idx_hour_dow ON trips(pickup_hour, pickup_dow)"))
-        conn.commmit()
+        conn.commit()
     print("[load] indexes created")

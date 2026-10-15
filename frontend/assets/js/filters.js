@@ -3,11 +3,12 @@
  */
 
 function getFilterValues() {
-  return {
+  const raw = {
     hour:       document.getElementById("filter-hour").value,
     dow:        document.getElementById("filter-dow").value,
     pu_borough: document.getElementById("filter-pu-borough").value,
   };
+  return Object.fromEntries(Object.entries(raw).filter(([, v]) => v !== ""));
 }
 
 function resetFilterControls() {

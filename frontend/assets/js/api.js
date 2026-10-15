@@ -56,4 +56,5 @@ async function getSpeedHeatmapStats(f = {})     { return fetchJSON("/stats/speed
 async function getBoroughFlowStats(f = {})      { return fetchJSON("/stats/borough-flow", f); }
 
 // Trip Explorer table — passes all active filters including limit
+async function getZoneCounts(f = {})         { return fetchJSON("/stats/zone-counts", f); }
 async function getFilteredTrips(filters = {}) { return fetchJSON("/trips", filters); }

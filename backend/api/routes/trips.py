@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 import sys, os
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".." ".."))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 from backend.api.db import query
 
 trips_bp = Blueprint("trips", __name__)
@@ -17,7 +17,7 @@ def get_trips():
     limit       = min(int(request.args.get("limit", 200)), 1000)
 
     filters = []
-    params  = {"limits": limit}
+    params  = {"limit": limit}
 
     if hour is not None:
         filters.append("t.pickup_hour = :hour")
@@ -26,13 +26,13 @@ def get_trips():
         filters.append("t.pickup_dow = :dow")
         params["dow"] = int(dow)
     if pu_zone is not None:
-        filters.append("t.pulocation = :pu_zone")
+        filters.append("t.pulocationid = :pu_zone")
         params["pu_zone"] = int(pu_zone)
     if do_zone is not None:
         filters.append("t.dolocationid = :do_zone")
         params["do_zone"] = int(do_zone)
     if pu_borough is not None:
-        filters.append("pu.borough = pu_borough")
+        filters.append("pu.borough = :pu_borough")
         params["pu_borough"] = pu_borough
 
     where = ("WHERE " + " AND ".join(filters)) if filters else ""
@@ -55,7 +55,7 @@ def get_trips():
             pu.zone     AS pu_zone,
             pu.borough  AS pu_borough,
             dz.zone     AS do_zone,
-            dz.borough  AS do_borough,
+            dz.borough  AS do_borough
         FROM trips t
         LEFT JOIN taxi_zones pu ON t.pulocationid = pu.location_id
         LEFT JOIN taxi_zones dz ON t.dolocationid = dz.location_id

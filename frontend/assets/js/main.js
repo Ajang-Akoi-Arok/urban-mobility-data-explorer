@@ -29,6 +29,7 @@ function initTheme() {
 // cached state shared across charts, table, and map
 let _cachedTripRows = [];
 let _cachedGeoJson  = null;
+let _lastTopZones   = [];
 let _currentFilterState = {};
 
 async function loadSummaryKPIsData() {
@@ -49,13 +50,14 @@ async function loadSummaryKPIsData() {
 async function loadAllDashboardCharts(filters = {}) {
   try {
     // fire all six requests in parallel
-    const [hourly, dow, fareDist, speedHm, topZones, boroughFlow] = await Promise.all([
+    const [hourly, dow, fareDist, speedHm, topZones, boroughFlow, zoneCounts] = await Promise.all([
       getHourlyStats(filters),
       getDayOfWeekStats(filters),
       getFareDistributionStats(filters),
       getSpeedHeatmapStats(filters),
       getTopZonesStats(10, filters),
       getBoroughFlowStats(filters),
+      getZoneCounts(filters),
     ]);
 
     renderHourlyChart(hourly);
@@ -65,15 +67,13 @@ async function loadAllDashboardCharts(filters = {}) {
     renderTopZonesChart(topZones);
     renderBoroughFlowChart(boroughFlow);
 
-    if (_cachedGeoJson) {
-      renderGeospatialMap(_cachedGeoJson, topZones);
-    } else {
-      fetch("assets/data/taxi_zones.geojson")
+    _lastTopZones = zoneCounts;
+
+    // don't render map here — only render when map tab is active
+    if (!_cachedGeoJson) {
+      fetch("/assets/data/taxi_zones.geojson")
         .then(res => res.json())
-        .then(geoJson => {
-          _cachedGeoJson = geoJson;
-          renderGeospatialMap(_cachedGeoJson, topZones);
-        })
+        .then(geoJson => { _cachedGeoJson = geoJson; })
         .catch(err => console.warn("GeoJSON load failed:", err));
     }
   } catch (err) {
@@ -125,8 +125,22 @@ function setupNavigationHandlers() {
       link.classList.add("active");
       const activeView = document.getElementById(`view-${targetViewId}`);
       if (activeView) activeView.classList.add("active");
-      // leaflet needs a nudge when its container becomes visible
-      if (targetViewId === "map") invalidateMapSize();
+      if (targetViewId === "map") {
+        initializeMapContainer();
+        setTimeout(async () => {
+          if (_leafletMapInstance) _leafletMapInstance.invalidateSize();
+          if (!_cachedGeoJson) {
+            try {
+              const res = await fetch("/assets/data/taxi_zones.geojson");
+              _cachedGeoJson = await res.json();
+            } catch(e) { console.warn("GeoJSON failed:", e); return; }
+          }
+          if (!_lastTopZones || _lastTopZones.length === 0) {
+            try { _lastTopZones = await getZoneCounts({}); } catch(e) { console.warn("zone-counts failed:", e); }
+          }
+          renderGeospatialMap(_cachedGeoJson, _lastTopZones);
+        }, 250);
+      }
     });
   });
 }

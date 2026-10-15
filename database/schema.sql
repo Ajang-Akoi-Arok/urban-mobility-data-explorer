@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS taxi_zones (
 
 -- Fact: cleaned and enriched trip records
 CREATE TABLE IF NOT EXISTS trips (
-    id                      INTEGER PRIMARY KEY AUTOINCREMENT,
+    id                      SERIAL PRIMARY KEY,
     tpep_pickup_datetime    TIMESTAMP   NOT NULL,
     tpep_dropoff_datetime   TIMESTAMP   NOT NULL,
     passenger_count         INTEGER,

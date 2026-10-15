@@ -32,14 +32,14 @@ def _build_where(params):
 
 @stats_bp.route("/stats/hourly", methods=["GET"])
 def hourly():
-    where, p, needs_join = _build_where(None)
+    where, p, needs_join = _build_where(request)
     join = "LEFT JOIN taxi_zones pu ON t.pulocationid = pu.location_id" if needs_join else ""
     sql = f"""
         SELECT 
             t.pickup_hour, 
             count(*)                            AS trip_count,
-            ROUND(AVG(t.fare_amount), 2)        AS avg_fare,
-            ROUND(AVG(t.trip_duration_min), 2)  AS avg_duration
+            ROUND(AVG(t.fare_amount)::numeric, 2)        AS avg_fare,
+            ROUND(AVG(t.trip_duration_min)::numeric, 2)  AS avg_duration
         FROM trips t {join}
         {where}
         GROUP BY t.pickup_hour
@@ -49,36 +49,35 @@ def hourly():
 
 @stats_bp.route("/stats/dow", methods=["GET"])
 def day_of_week():
-    where, p, needs_join = _build_where(None)
+    where, p, needs_join = _build_where(request)
     join = "LEFT JOIN taxi_zones pu ON t.pulocationid = pu.location_id" if needs_join else ""
     sql = f"""
         SELECT
             t.pickup_dow,
             COUNT(*) AS trip_count,
-            ROUND(AVG(t.fare_amount), 2) AS avg_fare
+            ROUND(AVG(t.fare_amount)::numeric, 2) AS avg_fare
         FROM trips t {join}
         {where}
         GROUP BY t.pickup_dow
-        GROUP BY t.pickup_dow
+        ORDER BY t.pickup_dow
     """
     return jsonify(query(sql, p))
 
-@stats_bp.route("/stats/top-zones", method=["GET"])
+@stats_bp.route("/stats/top-zones", methods=["GET"])
 def top_zones():
     k = int(request.args.get("k", 10))
-    where, p, _ = _build_where(None)
+    where, p, _ = _build_where(request)
 
     sql = f"""
         SELECT
-            t.oulocationid      AS zone_id,
+            t.pulocationid      AS zone_id,
             z.zone              AS zone_name,
             z.borough,
             COUNT(*)            AS trip_count
         FROM trips t
         LEFT JOIN taxi_zones z ON t.pulocationid = z.location_id
-        LEFT JOIN taxi_zones pu ON t.pulocationid = pu.location_id
         {where}
-        GROUP BY t.pulocationis, z.zone, z.borough
+        GROUP BY t.pulocationid, z.zone, z.borough
     """
     rows = query(sql, p)
 
@@ -96,11 +95,24 @@ def top_zones():
     ]
     return jsonify(result)
 
+@stats_bp.route("/stats/zone-counts", methods=["GET"])
+def zone_counts():
+    where, p, needs_join = _build_where(request)
+    join = "LEFT JOIN taxi_zones pu ON t.pulocationid = pu.location_id" if needs_join else ""
+    sql = f"""
+        SELECT
+            t.pulocationid AS zone_id,
+            COUNT(*)       AS trip_count
+        FROM trips t {join}
+        {where}
+        GROUP BY t.pulocationid
+    """
+    return jsonify(query(sql, p))
+
 @stats_bp.route("/stats/fare-distribution", methods=["GET"])
 def fare_distibution():
-    where, p, needs_join = _build_where(None)
+    where, p, needs_join = _build_where(request)
     join = "LEFT JOIN taxi_zones pu ON t.pulocationid = pu.location_id" if needs_join else ""
-    fare_clause = "AND t.fare_amount <= 100" if not where else "AND t.fare_amount <= 100"
     base_where = where if where else "WHERE t.fare_amount <= 100"
     if where:
         base_where = where + " AND t.fare_amount <= 100"
@@ -118,13 +130,13 @@ def fare_distibution():
 
 @stats_bp.route("/stats/speed-heatmap", methods=["GET"])
 def speed_heatmap():
-    where, p, needs_join = _build_where(None)
+    where, p, needs_join = _build_where(request)
     join = "LEFT JOIN taxi_zones pu ON t.pulocationid = pu.location_id" if needs_join else ""
     sql = f"""
         SELECT
             t.pickup_hour,
             t.pickup_dow,
-            ROUND(AVG(t.speed_mph), 2) AS avg_speed
+            ROUND(AVG(t.speed_mph)::numeric, 2) AS avg_speed
         FROM trips t {join}
         {where}
         GROUP BY t.pickup_hour, t.pickup_dow
@@ -134,9 +146,9 @@ def speed_heatmap():
 
 @stats_bp.route("/stats/borough-flow", methods=["GET"])
 def borough_flow():
-    where, p, need_join = _build_where(None)
-    base = "WHERE pu.borough IS NOT NULL AND do.borough IS NOT NULL"
-    if where: 
+    where, p, need_join = _build_where(request)
+    base = "WHERE pu.borough IS NOT NULL AND dz.borough IS NOT NULL"
+    if where:
         extra = where.replace("WHERE ", "AND ", 1)
         full_where = base + " " + extra
     else:
@@ -145,13 +157,13 @@ def borough_flow():
     sql = f"""
         SELECT
             pu.borough AS origin,
-            do.borough AS destination,
+            dz.borough AS destination,
             COUNT(*)    AS trip_count
         FROM trips t
         LEFT JOIN taxi_zones pu ON t.pulocationid = pu.location_id
-        LEFT JOIN taxi_zones do ON t.dolocationid = do.location_id
+        LEFT JOIN taxi_zones dz ON t.dolocationid = dz.location_id
         {full_where}
-        GROUP BY pu.borough, do.borough
+        GROUP BY pu.borough, dz.borough
         ORDER BY trip_count DESC
     """
     return jsonify(query(sql, p))
