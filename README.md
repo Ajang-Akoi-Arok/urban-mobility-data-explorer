@@ -25,7 +25,7 @@ Whether you want to explore the data, understand how the system works, or run th
 ## Links
 
 - **Task Sheet** [Click here](https://docs.google.com/spreadsheets/d/14VWNszvwL9NjOXft-gHnDvP2yGJx4KOzCd0atmYRrGc/edit?usp=sharing)
-- **Walkthrough Video** [Click here](https://drive.google.com/drive/u/0/folders/172Tv1ZxujBRuLC4eTtDCCyy0zpo3uxO0)
+- **Walkthrough Video** [Click here](https://youtu.be/3rN0UAwrHKk)
 
 ## What it actually does
 
